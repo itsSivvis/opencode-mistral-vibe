@@ -1,0 +1,44 @@
+{
+  "name": "opencode-mistral-vibe",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "itsSivvis",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itsSivvis/opencode-mistral-vibe.git"
+  },
+  "homepage": "https://github.com/itsSivvis/opencode-mistral-vibe#readme",
+  "bugs": "https://github.com/itsSivvis/opencode-mistral-vibe/issues",
+  "keywords": ["opencode", "opencode-plugin", "mistral", "vibe", "coding-agent"],
+  "packageManager": "bun@1.4.4",
+  "description": "Mistral Vibe model integration for OpenCode V2",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./server": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "bun test --timeout 30000",
+    "typecheck": "bun check --no-script",
+    "typecheck:tsc": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": "^2.2.5"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@opencode/plugin": "2.2.5",
+    "@ai-sdk/provider": "3.0.8",
+    "@tsconfig/bun": "1.0.9",
+    "@types/bun": "1.4.3",
+    "@typescript/native": "npm:typescript@7.1.0-beta"
+  }
+}

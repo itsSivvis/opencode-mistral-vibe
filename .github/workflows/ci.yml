@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.7"
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: uv tool install --python 3.12 mistral-vibe==3.1.0
+      - name: Test with the real Vibe runtime and a local HTTP fixture
+        run: VIBE_TEST_PYTHON="$(uv tool dir)/mistral-vibe/bin/python" bun run test
