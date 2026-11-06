@@ -3,7 +3,7 @@
 Community-maintained integration by [itsSivvis](https://github.com/itsSivvis).
 Not an official Mistral or OpenCode plugin.
 
-Adds **Mistral Vibe** to `/connect` and its configured Mistral models to `/models`.
+Adds **Mistral Vibe** to `/connect` and its account-specific model catalog to `/models`.
 Requires OpenCode 2.2.5+ and **mistral-vibe 3.1.x** on the OpenCode server host.
 
 ## Install
@@ -30,6 +30,23 @@ Then `/connect` → **Mistral Vibe** → **Use Vibe login**, and select a model 
 `/models`, for example `mistral-vibe/mistral-medium-3.5#high`. Reconnect to refresh
 the inventory after changing Vibe's user model configuration. `/reload` reloads
 the plugin configuration.
+
+### Model discovery and refresh
+
+The plugin loads Vibe's curated online model catalog for your account, including
+third-party models that Mistral hosts for Vibe. It merges the catalog through
+Vibe's native configuration layer, preserving your user-defined model overrides.
+Only models supporting function calls are contributed by the online catalog.
+
+The catalog is fetched when the connected plugin loads or reloads and when you
+reconnect/switch the Vibe connection. `/reload` therefore also checks for new
+online models. Merely opening `/models` does not refresh it; there is no timer.
+
+A fetch has a five-second overall budget. If it fails, the plugin uses Vibe's
+credential-specific disk cache (native TTL: 30 days), then its local defaults and
+user configuration. Model calls use that same cache, fetching only if no usable
+cache exists, so selecting a discovered model works across bridge processes.
+The probe reports `source: remote`, `cache`, or `local` for diagnostics.
 
 ## Architecture
 
@@ -67,7 +84,8 @@ Set these in the **server's environment**, not just the terminal client.
 ## Scope and limitations
 
 - Local-server integration; not registered in remote workspaces.
-- Lists configured Mistral-backend models, not Vibe's generic third-party models.
+- Lists Vibe's curated Mistral-hosted models and configured Mistral-backend models;
+  generic third-party provider backends are not supported.
 - Supports text, reasoning, image input, function tools and token/cache usage.
 - Uses OpenCode's system prompt rather than Vibe's product prompt.
 - Structured output and forced tool choice fail explicitly. Unsupported sampling

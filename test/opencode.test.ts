@@ -12,8 +12,19 @@ test.skipIf(!process.env.VIBE_TEST_OPENCODE || !process.env.VIBE_TEST_PYTHON)(
       hostname: "127.0.0.1",
       port: 0,
       async fetch(request) {
+        if (new URL(request.url).pathname === "/v1/model-catalog")
+          return Response.json({
+            models: [
+              {
+                id: "discovered-model",
+                label: "Discovered model",
+                capabilities: { function_calling: true },
+                max_context_length: 65536,
+              },
+            ],
+          })
         const body = await request.json()
-        expect(body).toMatchObject({ model: "fixture-model", stream: true })
+        expect(body).toMatchObject({ model: "discovered-model", stream: true })
         return new Response(
           `data: ${JSON.stringify({ id: "fixture", object: "chat.completion.chunk", created: 1, model: "fixture-model", choices: [{ index: 0, delta: { content: "VIBE_OK" }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13 } })}\n\ndata: [DONE]\n\n`,
           { headers: { "content-type": "text/event-stream" } },
@@ -78,12 +89,16 @@ thinking = "off"
         authorization: `Basic ${Buffer.from("opencode:fixture-server").toString("base64")}`,
         "content-type": "application/json",
       }
-      const integrations = await fetch(`${url}/api/integration`, { headers, signal }).then((response) =>
-        response.json(),
-      )
+      const integrations = await fetch(`${url}/api/integration`, {
+        headers,
+        signal,
+      }).then((response) => response.json())
       expect(integrations).toMatchObject({
         data: expect.arrayContaining([
-          expect.objectContaining({ id: "mistral-vibe", methods: [expect.objectContaining({ type: "external" })] }),
+          expect.objectContaining({
+            id: "mistral-vibe",
+            methods: [expect.objectContaining({ type: "external" })],
+          }),
         ]),
       })
       const events = await fetch(`${url}/api/event`, { headers, signal })
@@ -99,12 +114,15 @@ thinking = "off"
         // The inventory is published asynchronously by the credential event.
         // Wait on that event stream, not elapsed time or a polling interval.
         while (true) {
-          const models = await fetch(`${url}/api/model`, { headers, signal }).then((response) => response.text())
+          const models = await fetch(`${url}/api/model`, {
+            headers,
+            signal,
+          }).then((response) => response.text())
           const connection = await fetch(`${url}/api/integration/mistral-vibe`, { headers, signal }).then((response) =>
             response.text(),
           )
           if (connection.includes("needs_auth")) throw new Error(connection)
-          if (models.includes('"providerID":"mistral-vibe"') && models.includes('"id":"fixture"')) break
+          if (models.includes('"providerID":"mistral-vibe"') && models.includes('"id":"discovered-model"')) break
           if ((await stream.read()).done) throw new Error("OpenCode event stream ended before discovery")
         }
       } finally {
@@ -114,7 +132,10 @@ thinking = "off"
         method: "POST",
         headers,
         signal,
-        body: JSON.stringify({ prompt: "Say VIBE_OK", model: { providerID: "mistral-vibe", id: "fixture" } }),
+        body: JSON.stringify({
+          prompt: "Say VIBE_OK",
+          model: { providerID: "mistral-vibe", id: "discovered-model" },
+        }),
       })
       const body = await generated.text()
       expect(generated.status, body).toBe(200)

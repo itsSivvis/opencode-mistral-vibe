@@ -1,6 +1,6 @@
 {
   "name": "opencode-mistral-vibe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "author": "itsSivvis",
   "repository": {
@@ -9,8 +9,18 @@
   },
   "homepage": "https://github.com/itsSivvis/opencode-mistral-vibe#readme",
   "bugs": "https://github.com/itsSivvis/opencode-mistral-vibe/issues",
-  "keywords": ["opencode", "opencode-plugin", "mistral", "vibe", "coding-agent"],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "mistral",
+    "vibe",
+    "coding-agent"
+  ],
   "packageManager": "bun@1.4.4",
+  "prettier": {
+    "semi": false,
+    "printWidth": 120
+  },
   "description": "Mistral Vibe model integration for OpenCode V2",
   "type": "module",
   "exports": {

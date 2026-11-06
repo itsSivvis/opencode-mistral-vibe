@@ -37,6 +37,33 @@ async def main():
     # belong to OpenCode. No Vibe session or agent manager is constructed.
     orchestrator = await build_default_orchestrator()
     config = orchestrator.config
+    from vibe.core.config.layers.model_catalog import apply_model_catalog
+    from vibe.core.model_catalog import (
+        fetch_and_cache_model_catalog,
+        load_cached_model_catalog,
+    )
+
+    # Building Vibe's config leaves its model-catalog layer empty. Populate it
+    # exactly as the CLI does, without persisting an experimental flag in Vibe.
+    catalog = load_cached_model_catalog(config)
+    source = "cache" if catalog is not None else "local"
+    if request["type"] == "probe" or catalog is None:
+        try:
+            async with asyncio.timeout(5):
+                latest = await fetch_and_cache_model_catalog(
+                    config.model_copy(
+                        update={"experimental_enable_model_catalog": True}
+                    )
+                )
+        except TimeoutError:
+            latest = None
+        if latest is not None:
+            catalog = latest
+            source = "remote"
+    if catalog is not None:
+        await apply_model_catalog(orchestrator, catalog)
+        config = orchestrator.config
+
     models = {
         alias: model
         for alias, model in config.available_models().items()
@@ -47,6 +74,7 @@ async def main():
             {
                 "type": "catalog",
                 "version": release,
+                "source": source,
                 "models": [
                     {
                         "id": alias,

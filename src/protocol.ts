@@ -3,6 +3,7 @@ import { z } from "zod"
 export const Catalog = z.object({
   type: z.literal("catalog"),
   version: z.string(),
+  source: z.enum(["remote", "cache", "local"]).optional(),
   models: z.array(
     z.object({
       id: z.string(),
@@ -21,7 +22,11 @@ export const Event = z.discriminatedUnion("type", [
   Catalog,
   z.object({ type: z.literal("text"), text: z.string() }),
   z.object({ type: z.literal("reasoning"), text: z.string() }),
-  z.object({ type: z.literal("error"), message: z.string(), status: z.number().optional() }),
+  z.object({
+    type: z.literal("error"),
+    message: z.string(),
+    status: z.number().optional(),
+  }),
   z.object({
     type: z.literal("result"),
     parts: z.array(
@@ -31,7 +36,12 @@ export const Event = z.discriminatedUnion("type", [
           type: z.literal("reasoning"),
           content: z.array(z.object({ type: z.string(), text: z.string().optional() })),
         }),
-        z.object({ type: z.literal("tool_call"), id: z.string(), name: z.string(), arguments_json: z.string() }),
+        z.object({
+          type: z.literal("tool_call"),
+          id: z.string(),
+          name: z.string(),
+          arguments_json: z.string(),
+        }),
       ]),
     ),
     finish_reason: z.enum(["stop", "tool_call", "length", "content_filter", "other"]),
