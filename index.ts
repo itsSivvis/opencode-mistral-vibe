@@ -16,6 +16,7 @@ export default Plugin.define({
         models: catalog.models.map((model) => ({
           ...Model.Info.default(id, Model.ID.make(model.id)),
           name: model.name,
+          enabled: model.hidden !== true,
           limit: { context: model.context, output: model.output },
           capabilities: { tools: true, input: model.images ? ["text", "image"] : ["text"], output: ["text"] },
           variants: model.efforts.map((effort) => ({ id: Model.VariantID.make(effort), settings: { effort } })),

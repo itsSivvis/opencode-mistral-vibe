@@ -44,6 +44,12 @@ test.skipIf(!process.env.VIBE_TEST_PYTHON)(
                 label: "No tools",
                 capabilities: { function_calling: false },
               },
+              {
+                id: "mistral-medium-latest",
+                label: "Mistral Medium 3.5",
+                aliases: ["mistral-medium-3.5", "mistral-vibe-cli-latest"],
+                capabilities: { function_calling: true },
+              },
             ],
           })
         }
@@ -117,6 +123,11 @@ alias = "fixture"
 supports_images = true
 max_context_length = 32768
 thinking = "off"
+[[models]]
+name = "mistral-vibe-cli-latest"
+provider = "mistral"
+alias = "mistral-medium-3.5"
+temperature = 0.25
 `,
       )
       const catalog: Event[] = []
@@ -136,6 +147,8 @@ thinking = "off"
             context: 131072,
             efforts: ["off", "high"],
           }),
+          expect.objectContaining({ id: "mistral-medium-3.5", hidden: false }),
+          expect.objectContaining({ id: "mistral-medium-latest", hidden: false }),
         ]),
       })
       expect(JSON.stringify(catalog)).not.toContain("fixture-only")

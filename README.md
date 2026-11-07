@@ -37,6 +37,10 @@ The plugin loads Vibe's curated online model catalog for your account, including
 third-party models that Mistral hosts for Vibe. It merges the catalog through
 Vibe's native configuration layer, preserving your user-defined model overrides.
 Only models supporting function calls are contributed by the online catalog.
+When the catalog lists Vibe's unchanged built-in default as an alias of a
+canonical model, only the canonical entry is offered in the picker. The old ID
+remains resolvable for existing sessions. User-customized model definitions are
+preserved, and models are never deduplicated merely by their display name.
 
 The catalog is fetched when the connected plugin loads or reloads and when you
 reconnect/switch the Vibe connection. `/reload` therefore also checks for new

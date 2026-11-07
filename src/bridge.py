@@ -26,7 +26,11 @@ async def main():
         return
 
     from pydantic import TypeAdapter
-    from vibe.core.config import build_default_orchestrator, load_dotenv_values
+    from vibe.core.config import (
+        DEFAULT_ACTIVE_MODEL_CONFIG,
+        build_default_orchestrator,
+        load_dotenv_values,
+    )
     from vibe.core.config.harness_files import init_harness_files_manager
     from vibe.utils.api_keys import resolve_api_key
 
@@ -69,6 +73,21 @@ async def main():
         for alias, model in config.available_models().items()
         if str(config.get_provider_for_model(model).backend) == "mistral"
     }
+    # Keep the built-in route resolvable for existing sessions, but do not offer
+    # it twice when the catalog identifies its canonical replacement. A user's
+    # changed model settings are a distinct choice, even with the same label.
+    legacy = DEFAULT_ACTIVE_MODEL_CONFIG
+    shadowed = (
+        catalog is not None
+        and models.get(legacy.alias) == legacy
+        and any(
+            entry.id != legacy.alias
+            and entry.id in models
+            and models[entry.id].provider == legacy.provider
+            and (legacy.alias in entry.aliases or legacy.name in entry.aliases)
+            for entry in catalog.models
+        )
+    )
     if request["type"] == "probe":
         emit(
             {
@@ -83,6 +102,7 @@ async def main():
                         "output": model.max_output_tokens or 0,
                         "images": bool(model.supports_images),
                         "efforts": model.thinking_levels or [],
+                        "hidden": shadowed and alias == legacy.alias,
                         "authenticated": bool(
                             resolve_api_key(
                                 config.get_provider_for_model(model).api_key_env_var

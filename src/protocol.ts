@@ -13,6 +13,7 @@ export const Catalog = z.object({
       images: z.boolean(),
       efforts: z.array(z.string()),
       authenticated: z.boolean(),
+      hidden: z.boolean().optional(),
     }),
   ),
 })

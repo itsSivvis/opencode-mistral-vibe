@@ -21,10 +21,19 @@ test.skipIf(!process.env.VIBE_TEST_OPENCODE || !process.env.VIBE_TEST_PYTHON)(
                 capabilities: { function_calling: true },
                 max_context_length: 65536,
               },
+              {
+                id: "mistral-medium-latest",
+                label: "Mistral Medium 3.5",
+                aliases: ["mistral-medium-3.5", "mistral-vibe-cli-latest"],
+                capabilities: { function_calling: true },
+              },
             ],
           })
         const body = await request.json()
-        expect(body).toMatchObject({ model: "discovered-model", stream: true })
+        expect(body).toMatchObject({
+          model: expect.stringMatching(/^(discovered-model|mistral-vibe-cli-latest)$/),
+          stream: true,
+        })
         return new Response(
           `data: ${JSON.stringify({ id: "fixture", object: "chat.completion.chunk", created: 1, model: "fixture-model", choices: [{ index: 0, delta: { content: "VIBE_OK" }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13 } })}\n\ndata: [DONE]\n\n`,
           { headers: { "content-type": "text/event-stream" } },
@@ -122,7 +131,11 @@ thinking = "off"
             response.text(),
           )
           if (connection.includes("needs_auth")) throw new Error(connection)
-          if (models.includes('"providerID":"mistral-vibe"') && models.includes('"id":"discovered-model"')) break
+          if (models.includes('"providerID":"mistral-vibe"') && models.includes('"id":"discovered-model"')) {
+            expect(models).toContain('"id":"mistral-medium-latest"')
+            expect(models).not.toContain('"id":"mistral-medium-3.5"')
+            break
+          }
           if ((await stream.read()).done) throw new Error("OpenCode event stream ended before discovery")
         }
       } finally {
@@ -140,6 +153,19 @@ thinking = "off"
       const body = await generated.text()
       expect(generated.status, body).toBe(200)
       expect(body).toContain("VIBE_OK")
+      // The hidden ID remains usable by saved session model references.
+      const legacy = await fetch(`${url}/api/experimental/generate/text`, {
+        method: "POST",
+        headers,
+        signal,
+        body: JSON.stringify({
+          prompt: "Say VIBE_OK",
+          model: { providerID: "mistral-vibe", id: "mistral-medium-3.5" },
+        }),
+      })
+      const answer = await legacy.text()
+      expect(legacy.status, answer).toBe(200)
+      expect(answer).toContain("VIBE_OK")
     } finally {
       signal.removeEventListener("abort", stop)
       child.kill()
