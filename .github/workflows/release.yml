@@ -30,9 +30,5 @@ jobs:
           node-version: "24"
       - name: Upgrade npm for OIDC trusted publishing
         run: npm install -g npm@latest && npm --version
-      - name: Check OIDC environment
-        run: |
-          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then echo "OIDC token endpoint: available"; else echo "OIDC token endpoint: MISSING"; fi
-          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then echo "OIDC request token: available"; else echo "OIDC request token: MISSING"; fi
       - name: Publish to npm via OIDC trusted publishing
         run: npm publish --access public
