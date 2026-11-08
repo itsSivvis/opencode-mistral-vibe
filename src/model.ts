@@ -118,7 +118,10 @@ export class VibeModel implements LanguageModelV3 {
             for (const part of finish.parts) {
               if (part.type !== "tool_call") continue
               if (!request.tools.some((tool) => tool.name === part.name))
-                throw new Error("Vibe requested a tool that OpenCode did not offer")
+                // Pass the call through: OpenCode answers unoffered tools with a recoverable
+                // "No tool named ..." tool error instead of executing them, so the step
+                // survives and the model can retry with an offered tool.
+                console.warn(`Mistral Vibe requested a tool OpenCode did not offer: ${part.name}`)
               controller.enqueue({
                 type: "tool-call",
                 toolCallId: part.id,

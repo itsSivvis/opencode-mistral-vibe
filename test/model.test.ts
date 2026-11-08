@@ -60,7 +60,7 @@ test("preserves roles, tool IDs, errors and image contents", () => {
   })
 })
 
-test("does not execute tools and rejects calls outside the offered catalog", async () => {
+test("passes tool calls outside the offered catalog through for OpenCode to reject", async () => {
   const model = new VibeModel("fixture", async (request, emit) => {
     expect(request).toMatchObject({ tools: [] })
     emit({
@@ -69,13 +69,13 @@ test("does not execute tools and rejects calls outside the offered catalog", asy
       parts: [{ type: "tool_call", id: "call12345", name: "shell", arguments_json: "{}" }],
     })
   })
-  await expect(
-    model.doGenerate({
-      prompt: [],
-      toolChoice: { type: "none" },
-      tools: [{ type: "function", name: "shell", inputSchema: {} }],
-    }),
-  ).rejects.toThrow("did not offer")
+  const response = await model.doGenerate({
+    prompt: [],
+    toolChoice: { type: "none" },
+    tools: [{ type: "function", name: "shell", inputSchema: {} }],
+  })
+  expect(response.content).toEqual([{ type: "tool-call", toolCallId: "call12345", toolName: "shell", input: "{}" }])
+  expect(response.finishReason).toEqual({ unified: "tool-calls", raw: "tool_call" })
 })
 
 test("stream cancellation aborts the owned runner", async () => {
