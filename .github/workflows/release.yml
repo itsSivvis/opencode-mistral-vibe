@@ -28,5 +28,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest && npm --version
       - name: Publish to npm via OIDC trusted publishing
         run: npm publish --access public
