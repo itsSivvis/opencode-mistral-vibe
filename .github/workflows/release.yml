@@ -28,7 +28,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          registry-url: https://registry.npmjs.org
-          package-manager-cache: false
       - name: Publish to npm via OIDC trusted publishing
         run: npm publish --access public
