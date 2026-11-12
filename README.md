@@ -5,13 +5,14 @@ Not an official Mistral or OpenCode plugin.
 
 Adds **Mistral Vibe** to `/connect` and its account-specific model catalog to `/models`.
 Requires OpenCode 2.2.5+ and **mistral-vibe 3.1.x** on the OpenCode server host.
+The local-fixture integration tests cover Vibe **3.1.0, 3.1.1 and 3.1.2**.
 
 ## Install
 
 On the machine running the OpenCode server:
 
 ```sh
-uv tool install mistral-vibe==3.1.0
+uv tool install mistral-vibe==3.1.2
 vibe --setup
 opencode plugin add github:itsSivvis/opencode-mistral-vibe
 ```
@@ -74,6 +75,8 @@ of conversation history.
 
 The Python adapter API is internal to Vibe, so this release checks the 3.1.x
 version boundary. Update and retest the adapter before supporting another minor.
+Even patch releases can change these interfaces: the catalog bridge supports
+both the original helpers and the process-owned catalog service added in 3.1.2.
 
 ## Paths
 
