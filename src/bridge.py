@@ -9,6 +9,8 @@ import json
 import sys
 from importlib.metadata import version
 
+from catalog import load_catalog
+
 
 def emit(value):
     print(json.dumps(value, separators=(",", ":")), flush=True)
@@ -42,28 +44,10 @@ async def main():
     orchestrator = await build_default_orchestrator()
     config = orchestrator.config
     from vibe.core.config.layers.model_catalog import apply_model_catalog
-    from vibe.core.model_catalog import (
-        fetch_and_cache_model_catalog,
-        load_cached_model_catalog,
-    )
 
     # Building Vibe's config leaves its model-catalog layer empty. Populate it
     # exactly as the CLI does, without persisting an experimental flag in Vibe.
-    catalog = load_cached_model_catalog(config)
-    source = "cache" if catalog is not None else "local"
-    if request["type"] == "probe" or catalog is None:
-        try:
-            async with asyncio.timeout(5):
-                latest = await fetch_and_cache_model_catalog(
-                    config.model_copy(
-                        update={"experimental_enable_model_catalog": True}
-                    )
-                )
-        except TimeoutError:
-            latest = None
-        if latest is not None:
-            catalog = latest
-            source = "remote"
+    catalog, source = await load_catalog(config, refresh=request["type"] == "probe")
     if catalog is not None:
         await apply_model_catalog(orchestrator, catalog)
         config = orchestrator.config

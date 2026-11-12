@@ -18,6 +18,8 @@ test.skipIf(!process.env.VIBE_TEST_PYTHON)(
     const requests: Record<string, unknown>[] = []
     let catalogs = 0
     let offline = false
+    let slowCatalog = false
+    const catalogWait = Promise.withResolvers<Response>()
     const blocked = Promise.withResolvers<void>()
     let mode: "tools" | "answer" | "blocked" | "error" = "tools"
     const server = Bun.serve({
@@ -29,6 +31,7 @@ test.skipIf(!process.env.VIBE_TEST_PYTHON)(
           catalogs++
           expect(request.headers.get("authorization")).toBe(`Bearer ${process.env.OPENCODE_VIBE_TEST_KEY}`)
           expect(new URL(request.url).searchParams.get("surface")).toBe("vibe-code")
+          if (slowCatalog) return catalogWait.promise
           if (offline) return new Response("Unavailable", { status: 503 })
           return Response.json({
             models: [
@@ -249,12 +252,29 @@ temperature = 0.25
         source: "cache",
         models: expect.arrayContaining([expect.objectContaining({ id: "fresh-model" })]),
       })
+      slowCatalog = true
+      const timedOut: Event[] = []
+      await run({ type: "probe" }, (event) => timedOut.push(event), AbortSignal.timeout(15_000))
+      expect(timedOut[0]).toMatchObject({
+        source: "cache",
+        models: expect.arrayContaining([expect.objectContaining({ id: "fresh-model" })]),
+      })
+      slowCatalog = false
       process.env.OPENCODE_VIBE_TEST_KEY = "fixture-other"
       const other: Event[] = []
       await run({ type: "probe" }, (event) => other.push(event), AbortSignal.timeout(15_000))
       expect(other[0]).toMatchObject({ source: "local" })
       expect(JSON.stringify(other)).not.toContain("fresh-model")
+      delete process.env.OPENCODE_VIBE_TEST_KEY
+      const unauthenticated: Event[] = []
+      await run({ type: "probe" }, (event) => unauthenticated.push(event), AbortSignal.timeout(15_000))
+      expect(unauthenticated[0]).toMatchObject({
+        source: "local",
+        models: expect.arrayContaining([expect.objectContaining({ id: "fixture", authenticated: false })]),
+      })
+      expect(JSON.stringify(unauthenticated)).not.toContain("fresh-model")
     } finally {
+      catalogWait.resolve(new Response("Unavailable", { status: 503 }))
       server.stop(true)
       keys.forEach((key) => {
         if (saved[key] === undefined) delete process.env[key]
