@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import { VibeModel } from "../src/model.js"
+import { offered } from "../src/efforts.js"
 import { messages } from "../src/messages.js"
 import type { Event } from "../src/protocol.js"
 
@@ -102,4 +103,25 @@ test("truncated responses fail instead of completing successfully", async () => 
     emit({ type: "text", text: "Partial" })
   })
   await expect(model.doGenerate({ prompt: [] })).rejects.toThrow("did not return")
+})
+
+test("replaces a reasoning level the model refuses and offers the rest", async () => {
+  const requests: { effort?: unknown }[] = []
+  const run = async (modelId: string, effort: string) => {
+    const model = new VibeModel(modelId, async (request, emit) => {
+      requests.push(request as { effort?: unknown })
+      emit(result)
+    })
+    await model.doGenerate({
+      prompt: [{ role: "user", content: [{ type: "text", text: "Hi" }] }],
+      providerOptions: { "mistral-vibe": { effort } },
+    })
+  }
+  await run("deepseek-v4-1-flash-1017", "medium")
+  await run("deepseek-v4-1-flash-1017", "low")
+  await run("other-model", "medium")
+  expect(requests.map((request) => request.effort)).toEqual(["high", "low", "medium"])
+  expect(offered("deepseek-v4-1-flash-1017", "medium")).toBe(false)
+  expect(offered("deepseek-v4-1-flash-1017", "high")).toBe(true)
+  expect(offered("other-model", "medium")).toBe(true)
 })
