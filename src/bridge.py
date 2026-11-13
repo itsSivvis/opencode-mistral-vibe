@@ -34,7 +34,23 @@ async def main():
     from vibe.core.config.harness_files import init_harness_files_manager
     from vibe.utils.api_keys import resolve_api_key
 
-    request = json.loads(sys.stdin.readline())
+    if "--warm" in sys.argv:
+        # Pre-warmed worker: load every heavy module now and wait for the request
+        # on stdin. Config, credentials and the catalog are still read per request.
+        from mistralai_vibe_local_harness.protocol import RustMessage, RustToolDefinition  # noqa: F401
+        from mistralai_vibe_local_harness.vibe import LocalRuntimeAdapterConfig  # noqa: F401
+        from mistralai_vibe_local_harness.vibe.adapters.mistral import (  # noqa: F401
+            execute_mistral_completion,
+        )
+        from vibe.core.config.layers.model_catalog import apply_model_catalog  # noqa: F401
+        from vibe.core.llm.completion import _compile_reasoning  # noqa: F401
+        from vibe.core.llm.reasoning import profile_thinking  # noqa: F401
+        from vibe.core.model_catalog import load_cached_model_catalog  # noqa: F401
+
+    line = sys.stdin.readline()
+    if not line:
+        return  # Parent went away before sending a request.
+    request = json.loads(line)
     init_harness_files_manager("user")
     load_dotenv_values()
     # Only user model/connection settings; project tools, hooks and instructions

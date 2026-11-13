@@ -82,6 +82,12 @@ version boundary. Update and retest the adapter before supporting another minor.
   useful for pip installs, wrappers or Windows. With uv, the sibling `python` in
   Vibe's resolved environment is discovered automatically.
 - `VIBE_HOME`: honored by Vibe for user configuration and authentication.
+- `OPENCODE_VIBE_PREWARM`: set to `0` to start the Python bridge cold for every
+  request. By default one idle bridge with Vibe already imported waits for the next
+  model request (about 0.6 s faster per request, about 85 MB of memory) and stops
+  after 10 idle minutes. Each request still runs in its own process and reads
+  configuration and credentials at request time; the idle bridge is discarded when
+  the server's environment changes.
 
 Set these in the **server's environment**, not just the terminal client.
 
