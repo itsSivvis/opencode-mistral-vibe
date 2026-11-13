@@ -4,6 +4,7 @@ import type {
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
 } from "@ai-sdk/provider"
+import { effective } from "./efforts.js"
 import { messages } from "./messages.js"
 import { run } from "./process.js"
 import type { Event } from "./protocol.js"
@@ -71,7 +72,7 @@ export class VibeModel implements LanguageModelV3 {
       maxTokens: options.maxOutputTokens,
       temperature: options.temperature,
       topP: options.topP,
-      effort: options.providerOptions?.[ID]?.effort,
+      effort: effective(this.modelId, options.providerOptions?.[ID]?.effort as string | undefined),
     }
     const abort = new AbortController()
     const signal = options.abortSignal ? AbortSignal.any([abort.signal, options.abortSignal]) : abort.signal

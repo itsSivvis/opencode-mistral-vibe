@@ -2,6 +2,7 @@ import { Model, Plugin, Provider } from "@opencode/plugin"
 import { ID, PACKAGE, VibeModel } from "./src/model.js"
 import { Catalog } from "./src/protocol.js"
 import { run } from "./src/process.js"
+import { offered } from "./src/efforts.js"
 
 export default Plugin.define({
   id: "opencode.provider.mistral-vibe",
@@ -19,7 +20,9 @@ export default Plugin.define({
           enabled: model.hidden !== true,
           limit: { context: model.context, output: model.output },
           capabilities: { tools: true, input: model.images ? ["text", "image"] : ["text"], output: ["text"] },
-          variants: model.efforts.map((effort) => ({ id: Model.VariantID.make(effort), settings: { effort } })),
+          variants: model.efforts
+            .filter((effort) => offered(model.id, effort))
+            .map((effort) => ({ id: Model.VariantID.make(effort), settings: { effort } })),
           // A Vibe key may be subscription-backed. Do not invent API charges.
           cost: [],
         })),
