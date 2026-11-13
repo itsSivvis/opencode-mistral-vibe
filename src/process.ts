@@ -1,4 +1,5 @@
-import { spawn } from "node:child_process"
+import { spawn, type ChildProcessByStdio } from "node:child_process"
+import type { Readable, Writable } from "node:stream"
 import { access, readFile, realpath } from "node:fs/promises"
 import { constants } from "node:fs"
 import { delimiter, dirname, join } from "node:path"
@@ -40,14 +41,80 @@ export async function python() {
   )
 }
 
+const BRIDGE = fileURLToPath(new URL("./bridge.py", import.meta.url))
+// Set OPENCODE_VIBE_PREWARM=0 to go back to one cold Python process per request.
+const PREWARM = process.env.OPENCODE_VIBE_PREWARM !== "0"
+const WARM_IDLE_MS = 10 * 60 * 1000
+
+// One idle worker with Vibe already imported. A request takes it, runs once and
+// exits exactly like a cold process; a fresh one is started for the next request.
+type Worker = ChildProcessByStdio<Writable, Readable, null>
+let warm: { child: Worker; executable: string; env: string; timer: ReturnType<typeof setTimeout> } | undefined
+
+// A warm worker keeps the environment it was started with, so it is only reused while that is unchanged.
+const environment = () => JSON.stringify(process.env)
+
+function discard() {
+  if (!warm) return
+  clearTimeout(warm.timer)
+  warm.child.kill("SIGKILL")
+  warm = undefined
+}
+
+function prewarm(executable: string) {
+  if (!PREWARM || warm) return
+  try {
+    const child = spawn(executable, ["-u", BRIDGE, "--warm"], { stdio: ["pipe", "pipe", "ignore"], windowsHide: true })
+    const entry = { child, executable, env: environment(), timer: setTimeout(discard, WARM_IDLE_MS) }
+    entry.timer.unref?.()
+    child.unref()
+    child.on("error", () => {})
+    child.stdin.on("error", () => {})
+    child.stdout.on("data", () => {}) // Nothing is expected before a request; drop it.
+    child.once("close", () => {
+      clearTimeout(entry.timer)
+      if (warm === entry) warm = undefined
+    })
+    warm = entry
+  } catch {
+    warm = undefined
+  }
+}
+
+// Only model requests are worth a standby worker; a catalog probe alone is not.
+function acquire(executable: string, standby: boolean): Worker {
+  if (
+    PREWARM &&
+    warm &&
+    warm.executable === executable &&
+    warm.env === environment() &&
+    warm.child.exitCode === null &&
+    !warm.child.killed
+  ) {
+    const { child, timer } = warm
+    clearTimeout(timer)
+    warm = undefined
+    child.ref()
+    child.stdout.removeAllListeners("data")
+    if (standby) prewarm(executable)
+    return child
+  }
+  discard()
+  const child = spawn(executable, ["-u", BRIDGE], { stdio: ["pipe", "pipe", "ignore"], windowsHide: true })
+  if (standby) prewarm(executable)
+  return child
+}
+
+process.on("exit", discard)
+
+/** Stop the standby worker, e.g. when the plugin is disposed or reloaded. */
+export const shutdown = discard
+
 export async function run(request: object, emit: (event: Event) => void, signal: AbortSignal) {
   signal.throwIfAborted()
   const executable = await python()
   signal.throwIfAborted()
-  const child = spawn(executable, ["-u", fileURLToPath(new URL("./bridge.py", import.meta.url))], {
-    stdio: ["pipe", "pipe", "ignore"],
-    windowsHide: true,
-  })
+  const child = acquire(executable, (request as { type?: unknown }).type === "generate")
   let buffer = ""
   const decoder = new StringDecoder("utf8")
   let terminal = false
