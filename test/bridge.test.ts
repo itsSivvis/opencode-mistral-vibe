@@ -55,6 +55,7 @@ test.skipIf(!process.env.VIBE_TEST_PYTHON)(
         }
         expect(new URL(request.url).pathname).toBe("/v1/chat/completions")
         expect(request.headers.get("authorization")).toBe("Bearer fixture-only")
+        expect(request.headers.get("user-agent")).toMatch(/^mistral-client-python\/Mistral-Vibe\/3\.1\./)
         requests.push(z.record(z.string(), z.unknown()).parse(await request.json()))
         if (mode === "error")
           return Response.json({ message: "fixture-only must never appear in errors" }, { status: 401 })

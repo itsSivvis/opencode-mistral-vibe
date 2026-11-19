@@ -65,6 +65,8 @@ of conversation history.
 - OpenCode owns instructions, history, tools, approvals, compaction and subagents.
 - Vibe owns model transport and credential resolution (environment, its `.env`,
   keyring or CLI OIDC credential, as supported by Vibe).
+- Model requests carry Vibe's own client user-agent (`Mistral-Vibe/<version>`),
+  so Mistral meters them like `vibe` CLI requests, not as raw API usage.
 - Text/reasoning stream live; tool calls return to OpenCode for execution. Tool
   results preserve native roles and call IDs on the next request.
 - Cancellation terminates only the bridge process belonging to the request.
