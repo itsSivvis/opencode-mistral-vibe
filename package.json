@@ -45,7 +45,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@opencode/plugin": "2.2.7",
+    "@opencode/plugin": "2.3.2",
     "@ai-sdk/provider": "4.0.39",
     "@tsconfig/bun": "1.0.12",
     "@types/bun": "1.4.4",
